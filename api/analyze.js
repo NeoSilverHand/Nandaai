@@ -1,5 +1,5 @@
 // Vercel Serverless Function: POST /api/analyze
-// Conectado a Hugging Face Serverless
+// Conectado a Hugging Face Inference API (Nativo)
 
 const MAX_CHARS = 2000;
 const WINDOW_MS = 60 * 1000;
@@ -33,21 +33,21 @@ function limited(ip) {
 
 async function callHuggingFace(text) {
   const apiKey = process.env.HUGGINGFACE_API_KEY || process.env.HF_TOKEN;
-  // Usamos un modelo conversacional estándar y rápido de Hugging Face (Mistral-7B-Instruct)
-  const response = await fetch("https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3/v1/chat/completions", {
+  
+  // Usamos el endpoint oficial de modelos de Hugging Face
+  const response = await fetch("https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3", {
     method: "POST",
     headers: {
       "content-type": "application/json",
       "authorization": "Bearer " + apiKey,
     },
     body: JSON.stringify({
-      model: "mistralai/Mistral-7B-Instruct-v0.3",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: "Caso clínico:\n" + text }
-      ],
-      max_tokens: 1800,
-      temperature: 0.2
+      inputs: `[INST] ${SYSTEM_PROMPT}\n\nCaso clínico:\n${text} [/INST]`,
+      parameters: {
+        max_new_tokens: 1500,
+        temperature: 0.2,
+        return_full_text: false
+      }
     }),
   });
 
@@ -57,7 +57,17 @@ async function callHuggingFace(text) {
   }
 
   const data = await response.json();
-  return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || "";
+  
+  // Manejo de la respuesta de Hugging Face (puede venir en array o objeto)
+  if (Array.isArray(data) && data[0] && data[0].generated_text) {
+    return data[0].generated_text;
+  } else if (data.generated_text) {
+    return data.generated_text;
+  } else if (data.error) {
+    throw new Error(data.error);
+  }
+  
+  return typeof data === "string" ? data : JSON.stringify(data);
 }
 
 const S = (v, n) => String(v == null ? "" : v).slice(0, n);
