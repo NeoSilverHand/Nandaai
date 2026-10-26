@@ -1,10 +1,9 @@
 // Vercel Serverless Function: POST /api/analyze
-// La API key vive solo en variables de entorno del servidor; el navegador nunca la ve.
+// Conectado a Hugging Face Serverless
 
-const PROVIDER = (process.env.AI_PROVIDER || "anthropic").toLowerCase(); // "anthropic" | "openai"
 const MAX_CHARS = 2000;
 const WINDOW_MS = 60 * 1000;
-const MAX_REQ = 8; // por IP y minuto (límite básico; en serverless es "mejor esfuerzo")
+const MAX_REQ = 8;
 const hits = new Map();
 
 const SYSTEM_PROMPT = `Eres un asistente de apoyo al razonamiento clínico para profesionales y estudiantes de enfermería. Trabajas en español.
@@ -32,48 +31,33 @@ function limited(ip) {
   return arr.length > MAX_REQ;
 }
 
-async function callAnthropic(text) {
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
+async function callHuggingFace(text) {
+  const apiKey = process.env.HUGGINGFACE_API_KEY || process.env.HF_TOKEN;
+  // Usamos un modelo conversacional estándar y rápido de Hugging Face (Mistral-7B-Instruct)
+  const response = await fetch("https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3/v1/chat/completions", {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
+      "authorization": "Bearer " + apiKey,
     },
     body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
-      max_tokens: 1800,
-      temperature: 0.2,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: "<caso_clinico>\n" + text + "\n</caso_clinico>" }],
-    }),
-  });
-  if (!r.ok) throw new Error("anthropic " + r.status);
-  const j = await r.json();
-  return (j.content || []).map((b) => b.text || "").join("");
-}
-
-async function callOpenAI(text) {
-  const r = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: "Bearer " + process.env.OPENAI_API_KEY,
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-      temperature: 0.2,
-      max_tokens: 1800,
-      response_format: { type: "json_object" },
+      model: "mistralai/Mistral-7B-Instruct-v0.3",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: "<caso_clinico>\n" + text + "\n</caso_clinico>" },
+        { role: "user", content: "Caso clínico:\n" + text }
       ],
+      max_tokens: 1800,
+      temperature: 0.2
     }),
   });
-  if (!r.ok) throw new Error("openai " + r.status);
-  const j = await r.json();
-  return (j.choices && j.choices[0] && j.choices[0].message.content) || "";
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error("HuggingFace error " + response.status + ": " + errText);
+  }
+
+  const data = await response.json();
+  return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || "";
 }
 
 const S = (v, n) => String(v == null ? "" : v).slice(0, n);
@@ -101,8 +85,8 @@ module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });
 
-  const key = PROVIDER === "openai" ? process.env.OPENAI_API_KEY : process.env.ANTHROPIC_API_KEY;
-  if (!key) return res.status(500).json({ error: "Servidor sin API key configurada" });
+  const key = process.env.HUGGINGFACE_API_KEY || process.env.HF_TOKEN;
+  if (!key) return res.status(500).json({ error: "Servidor sin API key de Hugging Face configurada" });
 
   const ip = String(req.headers["x-forwarded-for"] || "anon").split(",")[0].trim();
   if (limited(ip)) return res.status(429).json({ error: "Demasiadas solicitudes. Espera un minuto." });
@@ -113,11 +97,10 @@ module.exports = async (req, res) => {
   if (text.length > MAX_CHARS) return res.status(400).json({ error: "El texto supera " + MAX_CHARS + " caracteres." });
 
   try {
-    // No se registra el texto del caso (datos sensibles de salud).
-    const raw = PROVIDER === "openai" ? await callOpenAI(text) : await callAnthropic(text);
+    const raw = await callHuggingFace(text);
     return res.status(200).json(clean(raw));
   } catch (e) {
     console.error("analyze error:", e.message);
-    return res.status(502).json({ error: "La IA no respondió correctamente." });
+    return res.status(502).json({ error: "La IA no respondió correctamente: " + e.message });
   }
 };
