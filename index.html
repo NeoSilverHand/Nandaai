@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI NANDA Diagnósticos</title>
+<meta name="theme-color" content="#0b7a83">
+<meta name="description" content="Valoración y diagnósticos de enfermería en formato PES, con y sin internet.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{--bg:#f2f7f8;--card:#fff;--ink:#12262f;--mut:#5a6d77;--line:#d5e2e6;--ac:#0b7a83;--on:#fff;
+--rb:#fdeceb;--rl:#c0392b;--bb:#e6f2fb;--bl:#1f6fb0;--yb:#fff5dc;--yl:#a06a00;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0c1a21;--card:#14262f;--ink:#e5eef1;--mut:#9bb0ba;--line:#27414d;--ac:#3fb8c1;--on:#06242a;
+--rb:#3a1f1d;--rl:#ff8f82;--bb:#17303f;--bl:#7ec0f2;--yb:#38301a;--yl:#f2c35c;color-scheme:dark}}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))}
+header{position:sticky;top:0;z-index:10;background:var(--ac);color:#fff;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;display:flex;align-items:center;gap:10px}
+header h1{font-size:18px;margin:0;flex:1;line-height:1.2}header small{display:block;font-weight:400;font-size:12px;opacity:.9}
+.chip{font-size:12px;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.2)}
+.hb{border:1px solid rgba(255,255,255,.6);background:transparent;color:#fff;border-radius:10px;padding:7px 11px;font:600 13px inherit;cursor:pointer}
+main{max-width:760px;margin:auto;padding:16px}
+label.big{display:block;font-weight:700;margin-bottom:8px}
+textarea{width:100%;min-height:230px;padding:16px;font:inherit;font-size:17px;color:var(--ink);background:var(--card);border:2px solid var(--ac);border-radius:16px;resize:vertical}
+textarea:focus{outline:4px solid color-mix(in srgb,var(--ac) 35%,transparent)}
+.go{width:100%;margin-top:12px;padding:18px;font:700 19px inherit;border:0;border-radius:16px;background:var(--ac);color:var(--on);cursor:pointer}
+.go:active{transform:scale(.99)}
+.ex{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px}
+.ex button{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:7px 13px;font:inherit;font-size:14px;cursor:pointer}
+.card{border-radius:14px;padding:14px 16px;margin-top:14px;border-left:6px solid}
+.card h2{margin:0 0 8px;font-size:17px}
+.r{background:var(--rb);border-color:var(--rl)}.r h2{color:var(--rl)}
+.b{background:var(--bb);border-color:var(--bl)}.b h2{color:var(--bl)}
+.y{background:var(--yb);border-color:var(--yl)}.y h2{color:var(--yl)}
+.dx{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
+.dx b.t{display:block;font-size:16px}.pes{margin:6px 0 0;font-size:15px}.pes i{font-style:normal;font-weight:700;color:var(--bl)}
+.pill{display:inline-block;font-size:12px;border-radius:99px;padding:1px 9px;background:var(--bb);color:var(--bl);margin-top:6px}
+.al{margin:8px 0;padding-left:0;list-style:none}.al li{margin-bottom:8px}
+.mut{color:var(--mut);font-size:14px}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-top:1px solid var(--line);display:flex;gap:10px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+.bar button{flex:1;padding:14px;border-radius:12px;font:700 15px inherit;border:2px solid var(--ac);background:var(--ac);color:var(--on);cursor:pointer}
+.bar button.o{background:transparent;color:var(--ac)}
+.bar[hidden],[hidden]{display:none!important}
+.load{margin-top:18px;padding:18px;border-radius:14px;background:var(--card);border:1px solid var(--line);display:flex;gap:12px;align-items:center}
+.spin{flex:none;width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--ac);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:2.5s}}
+.go:disabled{opacity:.7;cursor:wait}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:99px;font-size:14px;z-index:20}
+:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+</style>
+</head>
+<body>
+<header>
+  <h1>AI NANDA Diagnósticos<small>Con IA en línea · reglas locales sin conexión</small></h1>
+  <span class="chip" id="net">En línea</span>
+  <button class="hb" id="inst" hidden>Instalar</button>
+  <button class="hb" id="shApp" aria-label="Compartir la app">Compartir app</button>
+</header>
+<main>
+  <label class="big" for="txt">Situación o signos del paciente</label>
+  <textarea id="txt" placeholder="Escribe o pega aquí la situación o signos del paciente (ej. sofocado, mucosas secas, presión alta...)" autofocus></textarea>
+  <div class="ex" id="ex" aria-label="Ejemplos"></div>
+  <button class="go" id="go">Generar diagnósticos</button>
+  <div id="out"></div>
+</main>
+<div class="bar" id="bar" hidden>
+  <button id="cp">📋 Copiar todo el reporte</button>
+  <button class="o" id="sh">📤 Compartir resultado</button>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* Catálogo redactado con palabras propias para esta herramienta. Contrasta siempre con NANDA-I y tu criterio clínico. */
+var SG={
+disnea:[/sofoc|disnea|falta de aire|falta el aire|dificultad (para )?respirar|ahog/,"Disnea"],
+taquip:[/taquipn|respira (muy )?rapido|respiracion rapida|polipnea/,"Taquipnea"],
+sat:[/satur\w* (baja|disminuida|de 8\d|9[0-2]\b)|hipoxi|cianosis|labios (azules|morados)/,"Saturación baja o cianosis"],
+tos:[/\btos\b|secrecion|flema|esputo|sibilan/,"Tos o secreciones"],
+dtor:[/dolor (de |en el )?(pecho|toracic)|opresion (en el )?pecho/,"Dolor torácico"],
+dolor:[/dolor|duele|dolorid|molestia|punzada/,"Dolor referido"],
+fiebre:[/fiebre|febril|temperatura (alta|elevada)|\b3[89](\.\d)? ?(grados|c\b)/,"Fiebre"],
+muc:[/mucosas secas|boca seca|\bsed\b|sequedad|piel seca|deshidrat/,"Mucosas secas"],
+pal:[/presion alta|hipertens|tension alta|\b1[6-9]\d ?\/ ?\d{2,3}|\b2\d\d ?\/ ?\d{2,3}/,"Presión arterial elevada"],
+pba:[/presion baja|hipotens|tension baja|desmayo|sincope|mareo/,"Hipotensión o mareo"],
+tcar:[/taquicard|palpitac|pulso rapido|corazon acelerado/,"Taquicardia"],
+ans:[/ansied|nervios|miedo|angusti|preocup|inquiet|temor/,"Ansiedad o inquietud"],
+vom:[/nausea|vomit|diarrea|deposiciones liquidas/,"Náuseas, vómitos o diarrea"],
+est:[/estren|no evacua|sin evacuar|heces duras/,"Estreñimiento"],
+mov:[/dificultad (para )?(caminar|deambular|moverse)|no puede caminar|debilidad|inmovil|encamad|postrad/,"Movilidad limitada"],
+cai:[/cayo|caida|se cae|inestable|adulto mayor|anciano|anciana/,"Riesgo de caída"],
+her:[/herida|incision|cirugia|postquirurg|postoperat|sutura|apendicect|cesarea|cateter|sonda|drenaje/,"Herida o dispositivo invasivo"],
+piel:[/ulcera|escara|enrojecimiento|eritema|lesion en (la )?piel/,"Alteración de la piel"],
+sue:[/insomnio|no duerme|no puede dormir|desvelo/,"Dificultad para dormir"],
+nut:[/no come|inapetencia|perdida de peso|bajo peso|desnutr|anorexia/,"Ingesta insuficiente"],
+con:[/confus|desorient|somnolien|letarg|inconscien|no responde|agitad/,"Alteración del estado mental"],
+san:[/sangr|hemorrag|melena|hematemesis/,"Sangrado"],
+glu:[/glucosa|glicemia|diabet|hiperglucemia|azucar alta|poliuria|polidipsia/,"Alteración de glucemia"],
+ede:[/edema|hinchaz|hinchad|retencion de liquidos/,"Edema"],
+con2:[/no sabe|desconoce|dudas|no entiende|no toma (la )?medic|abandon/,"Falta de conocimiento o adherencia"]};
+var DX=[
+[1,"Patrón respiratorio ineficaz",["disnea","taquip","sat","dtor"],["fatiga de los músculos respiratorios","dolor","ansiedad","proceso infeccioso u obstructivo"]],
+[1,"Deterioro del intercambio de gases",["sat","disnea","con"],["desequilibrio ventilación-perfusión","cambios en la membrana alvéolo-capilar"]],
+[1,"Confusión aguda",["con","glu","fiebre"],["alteración metabólica","proceso infeccioso","efecto de medicamentos"]],
+[1,"Riesgo de sangrado",["san","her"],["procedimiento quirúrgico o invasivo","alteración de la coagulación"]],
+[2,"Limpieza ineficaz de las vías aéreas",["tos","disnea"],["secreciones retenidas","proceso infeccioso"]],
+[2,"Dolor agudo",["dolor","dtor","her"],["agentes lesivos físicos o biológicos","procedimiento quirúrgico"]],
+[2,"Hipertermia",["fiebre"],["proceso infeccioso o inflamatorio","deshidratación"]],
+[2,"Volumen de líquidos deficiente",["muc","vom","fiebre"],["pérdidas por vómito, diarrea o fiebre","ingesta insuficiente de líquidos"]],
+[2,"Riesgo de presión arterial inestable",["pal","pba"],["cambios en el estado hemodinámico","tratamiento o dieta inadecuados"]],
+[2,"Exceso de volumen de líquidos",["ede","pal","disnea"],["compromiso de los mecanismos reguladores","ingesta excesiva de sodio"]],
+[2,"Riesgo de nivel de glucemia inestable",["glu"],["conocimiento deficiente del manejo de la diabetes","adherencia inadecuada al tratamiento"]],
+[2,"Riesgo de infección",["her","fiebre"],["procedimiento invasivo","rotura de la piel"]],
+[3,"Ansiedad",["ans","tcar","sue"],["amenaza al estado de salud","cambio en el entorno"]],
+[3,"Riesgo de caídas",["cai","pba","mov","con"],["edad avanzada","debilidad o mareo","alteración de la marcha"]],
+[3,"Deterioro de la movilidad física",["mov","dolor"],["dolor","disminución de la fuerza muscular","reposo prescrito"]],
+[3,"Deterioro de la integridad cutánea",["piel"],["presión sobre prominencias óseas","humedad","inmovilidad"]],
+[3,"Estreñimiento",["est"],["ingesta insuficiente de fibra o líquidos","inmovilidad"]],
+[3,"Insomnio",["sue","ans"],["ansiedad","dolor","ruido ambiental"]],
+[3,"Desequilibrio nutricional: inferior a las necesidades corporales",["nut","vom"],["ingesta diaria insuficiente","náuseas"]],
+[3,"Conocimientos deficientes",["con2","pal","glu"],["información insuficiente","poca familiaridad con los recursos"]]];
+var AL=[
+[function(h){return h.disnea&&(h.sat||h.taquip)},"Posible compromiso respiratorio","Revisa vía aérea y respiración ya: frecuencia respiratoria, SatO₂ y esfuerzo. Posición semisentado y aviso inmediato al equipo médico según protocolo."],
+[function(h){return h.disnea&&!(h.sat||h.taquip)},"Disnea referida","Mide frecuencia respiratoria y SatO₂ y observa el esfuerzo respiratorio antes de seguir."],
+[function(h){return h.dtor},"Dolor torácico","Valora características del dolor, signos vitales y solicita ECG según protocolo. Avisa al médico."],
+[function(h){return h.con},"Alteración del estado mental","Valora nivel de conciencia (Glasgow), glucemia capilar y signos vitales. Asegura un entorno seguro."],
+[function(h){return h.san},"Sangrado","Controla la fuente, busca signos de shock (palidez, taquicardia, hipotensión) y avisa al equipo."],
+[function(h){return h.pba&&h.tcar},"Posible inestabilidad hemodinámica","Toma presión arterial y pulso, valora perfusión (piel, llenado capilar, diuresis) y avisa."],
+[function(h){return h.pal&&(h.dolor||h.con||h.disnea)},"Hipertensión con síntomas","Repite la medición en reposo y avisa al médico: la presión elevada con síntomas requiere evaluación urgente."],
+[function(h){return h.pal&&!(h.dolor||h.con||h.disnea)},"Presión arterial elevada","Confirma con medición correcta (reposo, brazalete adecuado) y vigila la aparición de síntomas."],
+[function(h){return h.fiebre},"Fiebre","Mide temperatura, frecuencia cardíaca y respiratoria; busca signos de sepsis (hipotensión, confusión, taquicardia)."],
+[function(h){return h.glu},"Alteración de glucemia","Realiza glucemia capilar y valora signos de hipo o hiperglucemia."]];
+var EJ=["Sofocado, mucosas secas, presión alta","Postoperatorio de apendicectomía con dolor, ansiedad y dificultad para caminar","Adulto mayor con mareo, caída reciente y debilidad","Fiebre, tos con secreciones y respiración rápida"];
+var $=function(i){return document.getElementById(i)},last="";
+function nm(s){return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function analizar(raw){var t=nm(raw),h={},ph={};Object.keys(SG).forEach(function(k){var m=t.match(SG[k][0]);if(m){h[k]=1;ph[k]=m[0].trim()}});return{h:h,ph:ph}}
+function ev(k,ph){return SG[k][1]+(nm(SG[k][1]).indexOf(ph)<0?" (“"+ph+"”)":"")}
+function local(raw){var a=analizar(raw),h=a.h,dx=[];
+DX.forEach(function(d){var m=d[2].filter(function(k){return h[k]});if(m.length)dx.push({tier:d[0],n:d[1],m:m,rt:d[3],sc:m.length})});
+dx.sort(function(x,y){return x.tier-y.tier||y.sc-x.sc});
+return{alertas:AL.filter(function(x){return x[0](h)}).map(function(x){return{titulo:x[1],accion:x[2]}}),
+diagnosticos:dx.slice(0,6).map(function(d){return{etiqueta:d.n,rt:d.rt.slice(0,2),mp:d.m.map(function(k){return ev(k,a.ph[k])}),prioridad:d.tier==1?"alta":"media",razon:""}}),faltan:[],
+aviso:"Resultado orientativo y provisional generado con reglas locales. No sustituye la valoración clínica, el juicio profesional ni los protocolos de tu institución. Confirma factores relacionados y características definitorias antes de registrar."}}
+function render(r,raw,ia){var T="REPORTE DE VALORACIÓN Y DIAGNÓSTICOS DE ENFERMERÍA\n"+new Date().toLocaleString("es")+"\nGenerado con: "+(ia?"IA":"reglas locales (sin conexión)")+"\n\nSituación: "+raw+"\n\n1) VALORACIÓN PRIORITARIA (SEGURIDAD)\n";
+var H='<p class="mut" style="margin:14px 0 0">'+(ia?"✨ Análisis generado con IA":"📴 Análisis con reglas locales (sin IA)")+"</p>";
+var lv=r.nivel=="emergencia"?"Posible emergencia: actúa ahora. ":r.nivel=="urgente"?"Caso urgente. ":"";
+H+='<section class="card r"><h2>🚨 Valoración prioritaria (seguridad)</h2>';
+if(r.alertas.length){H+='<ul class="al">'+r.alertas.map(function(x,i){T+="- "+x.titulo+": "+x.accion+"\n";return"<li><b>"+(i==0?esc(lv):"")+esc(x.titulo)+".</b> "+esc(x.accion)+"</li>"}).join("")+"</ul>"}
+else{var g="No se detectaron señales de alarma en el texto. Aun así, completa la valoración ABCDE y los signos vitales.";T+="- "+g+"\n";H+="<p>"+g+"</p>"}
+H+="</section>";T+="\n2) DIAGNÓSTICOS DE ENFERMERÍA (FORMATO PES)\n";
+H+='<section class="card b"><h2>📋 Diagnósticos de enfermería (NANDA: etiqueta, R/T y M/P)</h2>';
+if(!r.diagnosticos.length){var s="No hay coincidencias. Describe signos, síntomas y contexto con más detalle.";T+=s+"\n";H+="<p>"+s+"</p>"}
+r.diagnosticos.forEach(function(d,i){var rt=d.rt.join("; "),mp=d.mp.length?d.mp.join("; "):"Diagnóstico de riesgo: sin características definitorias";
+T+=(i+1)+". "+d.etiqueta+"\n   R/T: "+rt+"\n   M/P: "+mp+"\n"+(d.razon?"   Por qué: "+d.razon+"\n":"");
+H+='<div class="dx"><b class="t">'+(i+1)+". "+esc(d.etiqueta)+'</b><p class="pes"><i>R/T</i> '+esc(rt)+'</p><p class="pes"><i>M/P</i> '+esc(mp)+"</p>"+(d.razon?'<p class="pes mut"><i>Por qué</i> '+esc(d.razon)+"</p>":"")+(d.prioridad=="alta"?'<span class="pill">Prioridad alta</span>':"")+"</div>"});
+if(r.faltan&&r.faltan.length){T+="\nDatos que ayudarían: "+r.faltan.join("; ")+"\n";H+='<p class="mut"><b>Datos que ayudarían:</b> '+esc(r.faltan.join("; "))+"</p>"}
+H+="</section>";var av=r.aviso||"Resultado orientativo y provisional.";
+T+="\n3) AVISO CLÍNICO PROVISIONAL\n"+av+"\n";H+='<section class="card y"><h2>⚠️ Aviso clínico provisional</h2><p>'+esc(av)+"</p></section>";
+$("out").innerHTML=H;last=T;$("bar").hidden=false;$("out").scrollIntoView({behavior:"smooth",block:"start"})}
+function busy(on){var b=$("go");b.disabled=on;b.textContent=on?"Analizando el caso…":"Generar diagnósticos";if(on){$("bar").hidden=true;$("out").innerHTML='<div class="load" role="status" aria-live="polite"><span class="spin" aria-hidden="true"></span>La IA está analizando el caso: primero evalúa la gravedad y luego propone los diagnósticos…</div>'}}
+async function generar(){var raw=$("txt").value.trim();if(raw.length<4){toast("Escribe al menos un signo o síntoma.");$("txt").focus();return}
+if(!navigator.onLine){render(local(raw),raw,false);toast("Sin conexión: usé las reglas locales");return}
+busy(true);var ac=new AbortController(),to=setTimeout(function(){ac.abort()},45000);
+try{var r=await fetch("/api/analyze",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({caso:raw}),signal:ac.signal});
+var j=await r.json().catch(function(){return{}});
+if(!r.ok)throw new Error(j.error||"Error "+r.status);
+render(j,raw,true)}catch(e){render(local(raw),raw,false);toast(e.message&&/Demasiadas|supera/.test(e.message)?e.message:"La IA no está disponible: usé las reglas locales")}
+finally{clearTimeout(to);busy(false)}}
+function toast(m){var t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toast.i);toast.i=setTimeout(function(){t.hidden=true},2200)}
+function copiar(t){if(navigator.clipboard&&window.isSecureContext)return navigator.clipboard.writeText(t);return new Promise(function(ok,no){var x=document.createElement("textarea");x.value=t;document.body.appendChild(x);x.select();try{document.execCommand("copy")?ok():no()}catch(e){no()}document.body.removeChild(x)})}
+function compartir(data,fb){if(navigator.share){navigator.share(data).catch(function(){})}else{copiar(fb).then(function(){toast("Copiado: pégalo donde quieras compartir")},function(){toast("No se pudo compartir")})}}
+$("go").onclick=generar;
+$("cp").onclick=function(){copiar(last).then(function(){toast("Reporte copiado")},function(){toast("No se pudo copiar")})};
+$("sh").onclick=function(){compartir({title:"Diagnósticos de enfermería",text:last},last)};
+$("shApp").onclick=function(){var u=location.href.split("#")[0];compartir({title:"AI NANDA Diagnósticos",text:"Apoyo para diagnósticos de enfermería, funciona sin internet:",url:u},u)};
+$("ex").innerHTML=EJ.map(function(e,i){return'<button data-i="'+i+'">'+esc(e.split(",")[0].slice(0,34))+"…</button>"}).join("");
+$("ex").onclick=function(e){var i=e.target.getAttribute("data-i");if(i!==null){$("txt").value=EJ[+i];$("txt").focus()}};
+function net(){var o=navigator.onLine;$("net").textContent=o?"En línea":"Sin conexión"}
+addEventListener("online",net);addEventListener("offline",net);net();
+var dp;addEventListener("beforeinstallprompt",function(e){e.preventDefault();dp=e;$("inst").hidden=false});
+$("inst").onclick=function(){if(dp){dp.prompt();dp=null;$("inst").hidden=true}};
+if("serviceWorker"in navigator&&(location.protocol=="https:"||location.hostname=="localhost")){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
+</script>
+</body>
+</html>
